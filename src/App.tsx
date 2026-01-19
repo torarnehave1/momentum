@@ -32,6 +32,7 @@ function App() {
   const [configError, setConfigError] = useState('');
   const [saveStatus, setSaveStatus] = useState('');
   const [saveError, setSaveError] = useState('');
+  const [showChat, setShowChat] = useState(false);
 
   const setLanguage = (value: typeof language) => {
     setLanguageState(value);
@@ -297,8 +298,20 @@ function App() {
                 <p className="mt-4 text-xs text-rose-300">{configError}</p>
               )}
 
-              <div className="mt-6 grid gap-6 lg:grid-cols-[2fr,1fr]">
-                <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50">
+              <div className="mt-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-sm text-white/60">
+                    Live stream
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowChat(true)}
+                    className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/80 hover:bg-white/10"
+                  >
+                    Open chat
+                  </button>
+                </div>
+                <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50">
                   <div className="aspect-video w-full">
                     <iframe
                       title="Momentum live stream"
@@ -306,17 +319,6 @@ function App() {
                       src={`https://www.youtube.com/embed/${normalizeVideoId(videoId) || DEFAULT_VIDEO_ID}`}
                       allow="autoplay; encrypted-media"
                       allowFullScreen
-                    />
-                  </div>
-                </div>
-                <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50">
-                  <div className="h-full min-h-[320px] w-full">
-                    <iframe
-                      title="Momentum live chat"
-                      className="h-full w-full"
-                      src={`https://www.youtube.com/live_chat?v=${
-                        normalizeVideoId(videoId) || DEFAULT_VIDEO_ID
-                      }&embed_domain=${embedDomain}`}
                     />
                   </div>
                 </div>
@@ -364,6 +366,34 @@ function App() {
           </main>
         </div>
       </div>
+
+      {showChat && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm">
+          <div className="absolute inset-y-0 right-0 w-full max-w-md border-l border-white/10 bg-slate-950/95 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
+              <div className="text-sm font-semibold uppercase tracking-[0.3em] text-white/70">
+                Live chat
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowChat(false)}
+                className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/70 hover:bg-white/10"
+              >
+                Close
+              </button>
+            </div>
+            <div className="h-full p-4">
+              <iframe
+                title="Momentum live chat"
+                className="h-[85vh] w-full rounded-2xl border border-white/10 bg-slate-900/40"
+                src={`https://www.youtube.com/live_chat?v=${
+                  normalizeVideoId(videoId) || DEFAULT_VIDEO_ID
+                }&embed_domain=${embedDomain}`}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </LanguageContext.Provider>
   );
 }
