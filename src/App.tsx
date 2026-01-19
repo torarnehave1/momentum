@@ -32,7 +32,6 @@ function App() {
   const [configError, setConfigError] = useState('');
   const [saveStatus, setSaveStatus] = useState('');
   const [saveError, setSaveError] = useState('');
-  const [configToken, setConfigToken] = useState('');
 
   const setLanguage = (value: typeof language) => {
     setLanguageState(value);
@@ -153,7 +152,9 @@ function App() {
     setConfigLoading(true);
     setConfigError('');
     try {
-      const response = await fetch(`${CONFIG_BASE}/config`);
+      const response = await fetch(`${CONFIG_BASE}/config`, {
+        credentials: 'include'
+      });
       if (!response.ok) {
         throw new Error(`Config unavailable (${response.status})`);
       }
@@ -171,17 +172,13 @@ function App() {
   const saveConfig = async () => {
     setSaveStatus('');
     setSaveError('');
-    if (!configToken.trim()) {
-      setSaveError('Config token is required to save.');
-      return;
-    }
     try {
       const response = await fetch(`${CONFIG_BASE}/config`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${configToken.trim()}`
+          'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({ videoId })
       });
       const data = await response.json();
@@ -222,27 +219,7 @@ function App() {
 
   useEffect(() => {
     loadConfig();
-    try {
-      const savedToken = localStorage.getItem('momentum_config_token');
-      if (savedToken) {
-        setConfigToken(savedToken);
-      }
-    } catch {
-      // ignore storage errors
-    }
   }, []);
-
-  useEffect(() => {
-    try {
-      if (configToken) {
-        localStorage.setItem('momentum_config_token', configToken);
-      } else {
-        localStorage.removeItem('momentum_config_token');
-      }
-    } catch {
-      // ignore storage errors
-    }
-  }, [configToken]);
 
   return (
     <LanguageContext.Provider value={contextValue}>
@@ -346,15 +323,6 @@ function App() {
                       placeholder="YouTube video ID"
                       className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-sky-500/60"
                     />
-                    <input
-                      type="password"
-                      value={configToken}
-                      onChange={(event) => setConfigToken(event.target.value)}
-                      placeholder="Config token"
-                      className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-sky-500/60"
-                    />
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-3">
                     <button
                       type="button"
                       onClick={saveConfig}
@@ -362,6 +330,8 @@ function App() {
                     >
                       Save stream
                     </button>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-3">
                     <button
                       type="button"
                       onClick={loadConfig}
