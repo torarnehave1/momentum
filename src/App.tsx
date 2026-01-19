@@ -188,8 +188,10 @@ function App() {
         headers: {
           'Content-Type': 'application/json'
         },
-        credentials: 'include',
-        body: JSON.stringify({ videoId: normalizeVideoId(videoId) })
+        body: JSON.stringify({
+          videoId: normalizeVideoId(videoId),
+          email: authUser?.email || ''
+        })
       });
       const data = await response.json();
       if (!response.ok || !data.success) {
