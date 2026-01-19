@@ -44,6 +44,16 @@ function App() {
   const embedDomain =
     typeof window === 'undefined' ? 'momentum.vegvisr.org' : window.location.hostname;
 
+  const normalizeVideoId = (value: string) => {
+    if (!value) return '';
+    const trimmed = value.trim();
+    const urlMatch = trimmed.match(/[?&]v=([^&\s]+)/i);
+    if (urlMatch && urlMatch[1]) {
+      return urlMatch[1];
+    }
+    return trimmed.split(/\s+/)[0];
+  };
+
   const persistUser = (payload: any) => {
     const stored = authClient.persistUser(payload);
     if (!stored) return;
@@ -160,7 +170,7 @@ function App() {
       }
       const data = await response.json();
       if (data?.config?.videoId) {
-        setVideoId(data.config.videoId);
+        setVideoId(normalizeVideoId(data.config.videoId));
       }
     } catch (err) {
       setConfigError(err instanceof Error ? err.message : 'Failed to load config.');
@@ -179,7 +189,7 @@ function App() {
           'Content-Type': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify({ videoId })
+        body: JSON.stringify({ videoId: normalizeVideoId(videoId) })
       });
       const data = await response.json();
       if (!response.ok || !data.success) {
@@ -291,7 +301,7 @@ function App() {
                     <iframe
                       title="Momentum live stream"
                       className="h-full w-full"
-                      src={`https://www.youtube.com/embed/${videoId || DEFAULT_VIDEO_ID}`}
+                      src={`https://www.youtube.com/embed/${normalizeVideoId(videoId) || DEFAULT_VIDEO_ID}`}
                       allow="autoplay; encrypted-media"
                       allowFullScreen
                     />
@@ -303,7 +313,7 @@ function App() {
                       title="Momentum live chat"
                       className="h-full w-full"
                       src={`https://www.youtube.com/live_chat?v=${
-                        videoId || DEFAULT_VIDEO_ID
+                        normalizeVideoId(videoId) || DEFAULT_VIDEO_ID
                       }&embed_domain=${embedDomain}`}
                     />
                   </div>
