@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AuthBar, EcosystemNav, LanguageSelector, authClient } from 'vegvisr-ui-kit';
-import appLogo from './assets/app-logo.png';
+import momentumLogo from './assets/momentum-logo.png';
 import { LanguageContext } from './lib/LanguageContext';
 import { getStoredLanguage, setStoredLanguage } from './lib/storage';
 import { useTranslation } from './lib/useTranslation';
 
 const AUTH_BASE = 'https://cookie.vegvisr.org';
 const DASHBOARD_BASE = 'https://dashboard.vegvisr.org';
+const CONFIG_BASE = 'https://momentum-config.vegvisr.org';
+
+const DEFAULT_VIDEO_ID = 'LbeFGLfFygs';
 
 type AuthUser = {
   email: string;
@@ -24,6 +27,13 @@ function App() {
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
 
+  const [videoId, setVideoId] = useState(DEFAULT_VIDEO_ID);
+  const [configLoading, setConfigLoading] = useState(false);
+  const [configError, setConfigError] = useState('');
+  const [saveStatus, setSaveStatus] = useState('');
+  const [saveError, setSaveError] = useState('');
+  const [configToken, setConfigToken] = useState('');
+
   const setLanguage = (value: typeof language) => {
     setLanguageState(value);
     setStoredLanguage(value);
@@ -31,6 +41,9 @@ function App() {
 
   const contextValue = useMemo(() => ({ language, setLanguage }), [language]);
   const t = useTranslation(language);
+
+  const embedDomain =
+    typeof window === 'undefined' ? 'momentum.vegvisr.org' : window.location.hostname;
 
   const persistUser = (payload: any) => {
     const stored = authClient.persistUser(payload);
@@ -136,6 +149,51 @@ function App() {
     }
   };
 
+  const loadConfig = async () => {
+    setConfigLoading(true);
+    setConfigError('');
+    try {
+      const response = await fetch(`${CONFIG_BASE}/config`);
+      if (!response.ok) {
+        throw new Error(`Config unavailable (${response.status})`);
+      }
+      const data = await response.json();
+      if (data?.config?.videoId) {
+        setVideoId(data.config.videoId);
+      }
+    } catch (err) {
+      setConfigError(err instanceof Error ? err.message : 'Failed to load config.');
+    } finally {
+      setConfigLoading(false);
+    }
+  };
+
+  const saveConfig = async () => {
+    setSaveStatus('');
+    setSaveError('');
+    if (!configToken.trim()) {
+      setSaveError('Config token is required to save.');
+      return;
+    }
+    try {
+      const response = await fetch(`${CONFIG_BASE}/config`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${configToken.trim()}`
+        },
+        body: JSON.stringify({ videoId })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data?.error || 'Failed to save config.');
+      }
+      setSaveStatus('Saved.');
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save config.');
+    }
+  };
+
   useEffect(() => {
     const token = authClient.parseMagicToken(window.location.href);
     if (!token) return;
@@ -162,13 +220,37 @@ function App() {
     setAuthStatus('anonymous');
   }, []);
 
+  useEffect(() => {
+    loadConfig();
+    try {
+      const savedToken = localStorage.getItem('momentum_config_token');
+      if (savedToken) {
+        setConfigToken(savedToken);
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (configToken) {
+        localStorage.setItem('momentum_config_token', configToken);
+      } else {
+        localStorage.removeItem('momentum_config_token');
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, [configToken]);
+
   return (
     <LanguageContext.Provider value={contextValue}>
       <div className="min-h-screen bg-slate-950 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.25),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(139,92,246,0.25),_transparent_55%)]" />
         <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-12">
           <header className="flex flex-wrap items-center justify-between gap-4">
-            <img src={appLogo} alt={t('app.title')} className="h-12 w-auto" />
+            <img src={momentumLogo} alt={t('app.title')} className="h-12 w-auto" />
             <div className="flex items-center gap-3">
               <LanguageSelector value={language} onChange={setLanguage} />
               <AuthBar
@@ -217,20 +299,85 @@ function App() {
           <main className="mt-12 grid gap-6">
             <section className="rounded-3xl border border-white/10 bg-white/5 p-8">
               <h1 className="text-3xl font-semibold text-white">{t('app.title')}</h1>
-              <p className="mt-3 text-sm text-white/70">
-                This is the Momentum starter shell. Replace this section with your app-specific
-                features.
-              </p>
-              <div className="mt-6 rounded-2xl border border-white/10 bg-slate-900/50 px-6 py-5 text-sm text-white/70">
-                <div className="text-xs font-semibold uppercase tracking-[0.3em] text-white/50">
-                  Starter Notes
+              <p className="mt-3 text-sm text-white/70">Live access for Momentum sessions.</p>
+
+              {configLoading && (
+                <p className="mt-4 text-xs text-white/60">Loading stream configuration...</p>
+              )}
+              {configError && (
+                <p className="mt-4 text-xs text-rose-300">{configError}</p>
+              )}
+
+              <div className="mt-6 grid gap-6 lg:grid-cols-[2fr,1fr]">
+                <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50">
+                  <div className="aspect-video w-full">
+                    <iframe
+                      title="Momentum live stream"
+                      className="h-full w-full"
+                      src={`https://www.youtube.com/embed/${videoId || DEFAULT_VIDEO_ID}`}
+                      allow="autoplay; encrypted-media"
+                      allowFullScreen
+                    />
+                  </div>
                 </div>
-                <ul className="mt-3 list-disc space-y-2 pl-5">
-                  <li>Auth, language selector, and ecosystem nav are wired.</li>
-                  <li>Tailwind v3 is configured to match the rest of the ecosystem.</li>
-                  <li>Replace the logo and icon assets when you brand a new app.</li>
-                </ul>
+                <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50">
+                  <div className="h-full min-h-[320px] w-full">
+                    <iframe
+                      title="Momentum live chat"
+                      className="h-full w-full"
+                      src={`https://www.youtube.com/live_chat?v=${
+                        videoId || DEFAULT_VIDEO_ID
+                      }&embed_domain=${embedDomain}`}
+                    />
+                  </div>
+                </div>
               </div>
+
+              {authUser?.role === 'Superadmin' && (
+                <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 px-6 py-5 text-sm text-white/80">
+                  <div className="text-xs font-semibold uppercase tracking-[0.3em] text-white/60">
+                    Stream Config
+                  </div>
+                  <div className="mt-4 grid gap-3 md:grid-cols-[2fr,1fr]">
+                    <input
+                      type="text"
+                      value={videoId}
+                      onChange={(event) => setVideoId(event.target.value)}
+                      placeholder="YouTube video ID"
+                      className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-sky-500/60"
+                    />
+                    <input
+                      type="password"
+                      value={configToken}
+                      onChange={(event) => setConfigToken(event.target.value)}
+                      placeholder="Config token"
+                      className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-sky-500/60"
+                    />
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={saveConfig}
+                      className="rounded-2xl bg-gradient-to-r from-sky-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-500/30"
+                    >
+                      Save stream
+                    </button>
+                    <button
+                      type="button"
+                      onClick={loadConfig}
+                      className="rounded-2xl border border-white/20 px-6 py-3 text-sm font-semibold text-white/80"
+                    >
+                      Refresh
+                    </button>
+                  </div>
+                  {saveStatus && <p className="mt-3 text-xs text-emerald-300">{saveStatus}</p>}
+                  {saveError && <p className="mt-3 text-xs text-rose-300">{saveError}</p>}
+                  <p className="mt-3 text-xs text-white/50">
+                    Enter the live stream video ID (the value after <span className="font-mono">v=</span>)
+                    and save.
+                  </p>
+                </div>
+              )}
             </section>
           </main>
         </div>

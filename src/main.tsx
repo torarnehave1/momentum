@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import appIcon from './assets/app-icon.png'
+import momentumIcon from './assets/momentum-icon.png'
 import appleTouchIcon from 'vegvisr-ui-kit/assets/apple-touch-icon.png'
 import './index.css'
 import App from './App.tsx'
@@ -28,7 +28,7 @@ const setIcon = ({
   link.href = href
 }
 
-setIcon({ rel: 'icon', type: 'image/png', href: appIcon })
+setIcon({ rel: 'icon', type: 'image/png', href: momentumIcon })
 setIcon({ rel: 'apple-touch-icon', sizes: '180x180', href: appleTouchIcon })
 
 createRoot(document.getElementById('root')!).render(
