@@ -8,6 +8,8 @@ import { useTranslation } from './lib/useTranslation';
 const AUTH_BASE = 'https://cookie.vegvisr.org';
 const DASHBOARD_BASE = 'https://dashboard.vegvisr.org';
 const CONFIG_BASE = 'https://momentum-config.vegvisr.org';
+const YOUTUBE_WORKER_BASE = 'https://youtube.vegvisr.org';
+const PLAYLIST_ID = 'PLUCNLMRSjtsVSE1HMcIfKUkLhgg1On0zz';
 
 const DEFAULT_VIDEO_ID = 'Ravm34ovFRQ';
 
@@ -33,6 +35,9 @@ function App() {
   const [saveStatus, setSaveStatus] = useState('');
   const [saveError, setSaveError] = useState('');
   const [showChat, setShowChat] = useState(false);
+  const [playlistVideos, setPlaylistVideos] = useState<any[]>([]);
+  const [playlistLoading, setPlaylistLoading] = useState(false);
+  const [playlistError, setPlaylistError] = useState('');
 
   const setLanguage = (value: typeof language) => {
     setLanguageState(value);
@@ -205,6 +210,27 @@ function App() {
     }
   };
 
+  const loadPlaylist = async () => {
+    setPlaylistLoading(true);
+    setPlaylistError('');
+    try {
+      const response = await fetch(`${YOUTUBE_WORKER_BASE}/playlist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playlist_id: PLAYLIST_ID, max_results: 12 })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data?.error || 'Failed to load playlist.');
+      }
+      setPlaylistVideos(Array.isArray(data.videos) ? data.videos : []);
+    } catch (err) {
+      setPlaylistError(err instanceof Error ? err.message : 'Failed to load playlist.');
+    } finally {
+      setPlaylistLoading(false);
+    }
+  };
+
   useEffect(() => {
     const token = authClient.parseMagicToken(window.location.href);
     if (!token) return;
@@ -233,6 +259,10 @@ function App() {
 
   useEffect(() => {
     loadConfig();
+  }, []);
+
+  useEffect(() => {
+    loadPlaylist();
   }, []);
 
   return (
@@ -363,6 +393,55 @@ function App() {
                   </p>
                 </div>
               )}
+
+              <div className="mt-10">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="text-lg font-semibold text-white/90">Previous Streams</h2>
+                  <button
+                    type="button"
+                    onClick={loadPlaylist}
+                    className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/80 hover:bg-white/10"
+                  >
+                    Refresh
+                  </button>
+                </div>
+                {playlistLoading && (
+                  <p className="mt-3 text-xs text-white/60">Loading playlist...</p>
+                )}
+                {playlistError && (
+                  <p className="mt-3 text-xs text-rose-300">{playlistError}</p>
+                )}
+                {!playlistLoading && !playlistError && playlistVideos.length === 0 && (
+                  <p className="mt-3 text-xs text-white/60">No playlist videos found.</p>
+                )}
+                {playlistVideos.length > 0 && (
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {playlistVideos.map((video) => (
+                      <a
+                        key={video.video_id || video.embed_url}
+                        href={video.video_url || '#'}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group rounded-2xl border border-white/10 bg-slate-900/40 p-3 transition hover:border-sky-400/60"
+                      >
+                        <div className="overflow-hidden rounded-xl">
+                          <img
+                            src={video.thumbnails?.medium?.url || video.thumbnails?.default?.url}
+                            alt={video.title || 'Video thumbnail'}
+                            className="h-40 w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                          />
+                        </div>
+                        <div className="mt-3 text-sm font-semibold text-white/90 line-clamp-2">
+                          {video.title || 'Untitled stream'}
+                        </div>
+                        <div className="mt-1 text-xs text-white/50">
+                          {video.channel_title || 'Vegvisr'}
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
             </section>
           </main>
         </div>
