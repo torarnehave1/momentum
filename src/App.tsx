@@ -9,7 +9,7 @@ const AUTH_BASE = 'https://cookie.vegvisr.org';
 const DASHBOARD_BASE = 'https://dashboard.vegvisr.org';
 const CONFIG_BASE = 'https://momentum-config.vegvisr.org';
 
-const DEFAULT_VIDEO_ID = 'LbeFGLfFygs';
+const DEFAULT_VIDEO_ID = 'Ravm34ovFRQ';
 
 type AuthUser = {
   email: string;
