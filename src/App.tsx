@@ -38,6 +38,7 @@ function App() {
   const [playlistVideos, setPlaylistVideos] = useState<any[]>([]);
   const [playlistLoading, setPlaylistLoading] = useState(false);
   const [playlistError, setPlaylistError] = useState('');
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
 
   const setLanguage = (value: typeof language) => {
     setLanguageState(value);
@@ -332,22 +333,33 @@ function App() {
               <div className="mt-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="text-sm text-white/60">
-                    Live stream
+                    {selectedVideoId ? 'Playback' : 'Live stream'}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowChat(true)}
-                    className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/80 hover:bg-white/10"
-                  >
-                    Open chat
-                  </button>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {selectedVideoId && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedVideoId(null)}
+                        className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/80 hover:bg-white/10"
+                      >
+                        Back to live
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowChat(true)}
+                      className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/80 hover:bg-white/10"
+                    >
+                      Open chat
+                    </button>
+                  </div>
                 </div>
                 <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50">
                   <div className="aspect-video w-full">
                     <iframe
                       title="Momentum live stream"
                       className="h-full w-full"
-                      src={`https://www.youtube.com/embed/${normalizeVideoId(videoId) || DEFAULT_VIDEO_ID}`}
+                      src={`https://www.youtube.com/embed/${selectedVideoId || normalizeVideoId(videoId) || DEFAULT_VIDEO_ID}`}
                       allow="autoplay; encrypted-media"
                       allowFullScreen
                     />
@@ -420,8 +432,13 @@ function App() {
                       <a
                         key={video.video_id || video.embed_url}
                         href={video.video_url || '#'}
-                        target="_blank"
-                        rel="noreferrer"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          if (video.video_id) {
+                            setSelectedVideoId(video.video_id);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }
+                        }}
                         className="group rounded-2xl border border-white/10 bg-slate-900/40 p-3 transition hover:border-sky-400/60"
                       >
                         <div className="overflow-hidden rounded-xl">
